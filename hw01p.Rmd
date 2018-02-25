@@ -1,0 +1,317 @@
+---
+title: "HW01p"
+author: "Joseph Peltroche"
+date: "February 19, 2018"
+output: pdf_document
+---
+
+Welcome to HW01p where the "p" stands for "practice" meaning you will use R to solve practical problems. This homework is due 11:59 PM Satuday 2/24/18. 
+
+You should have RStudio installed to edit this file. You will write code in places marked "TO-DO" to complete the problems. Some of this will be a pure programming assignment. The tools for the solutions to these problems can be found in the class practice lectures. I want you to use the methods I taught you, not for you to google and come up with whatever works. You won't learn that way.
+
+To "hand in" the homework, you should compile or publish this file into a PDF that includes output of your code. Once it's done, push by the deadline.
+
+## R Basics
+
+First, install the package `testthat` (a widely accepted testing suite for R) from https://github.com/r-lib/testthat using `pacman`. If you are using Windows, this will be a long install, but you have to go through it for some of the stuff we are doing in class. LINUX (or MAC) is preferred for coding. If you can't get it to work, install this package from CRAN (still using `pacman`), but this is not recommended long term.
+
+```{r}
+if (!require("pacman")){install.packages("pacman")}
+pacman::p_load(devtools)
+pacman::p_load_gh("testthat")
+```
+
+1. Use the `seq` function to create vector `v` consisting of all numbers from -100 to 100. 
+
+```{r}
+v=seq(-100,100)
+```
+
+Test using the following code:
+
+```{r}
+expect_equal(v, -100 : 100)
+```
+
+If there are any errors, the `expect_equal` function will tell you about them. If there are no errors, then it will be silent.
+
+2. Create a function `my_reverse` which takes as required input a vector and returns the vector in reverse where the first entry is the last entry, etc. No function calls are allowed inside your function (otherwise that would defeat the purpose of the exercise).
+
+```{r}
+my_reverse=function(x){
+    l=length(x)
+    d=x
+    if (is.vector(x)!=TRUE){
+        print("Error: The input must be a vector")
+    } else {
+        for (i in 0:(l-1)){
+            x[i+1]=d[l-i]
+        }
+    x
+    }
+}
+```
+
+Test using the following code:
+
+```{r}
+expect_equal(my_reverse(c("A", "B", "C")), c("C", "B", "A"))
+expect_equal(my_reverse(v), rev(v))
+```
+
+3. Let `n = 50`. Create a nxn matrix `R` of exactly 50% entries 0's, 25% 1's 25% 2's in random locations.
+
+```{r}
+n = 50
+R=matrix(sample(rep(c(0,0,1,2),625)), nrow = n, ncol = n)
+#The nxn matrix has 2500 entries. The value of 625 in the repitition function is the
+
+#repeat the four entries 625 times: 625x4.
+```
+
+Test using the following and write two more tests as specified below:
+
+```{r}
+#test #1
+expect_equal(dim(R), c(n, n))
+unique(c(R))
+#test #1
+x=0
+r=c(R)
+for(i in 1:2500){
+  if(r[i]==2){
+    x=x+1
+  }
+}
+x
+```
+
+4. Randomly punch holes (i.e. `NA`) values in this matrix so that approximately 30% of the entries are missing.
+
+```{r}
+r=c(R)
+r_l=length(R)*0.3
+R_1=matrix(sample(replace(r,1:r_l,NA)),nrow = n,ncol = n)
+```
+
+Test using the following code. Note this test may fail 1/100 times.
+
+```{r}
+num_missing_in_R = sum(is.na(c(R_1)))
+expect_lt(num_missing_in_R, qbinom(0.995, n^2, 0.3))
+expect_gt(num_missing_in_R, qbinom(0.005, n^2, 0.3))
+```
+
+5. Sort the rows matrix `R` by the largest row sum to lowest. See 2/3 way through practice lecture 3 for a hint.
+
+```{r}
+row_sums=rep(NA,50);
+d=matrix(NA,nrow = 50,ncol=50)
+for(i in 1:50){
+  row_sums[i]=sum(R[i,])
+}
+rownames(R)=row_sums 
+row_sorted=rownames(R)[order(rownames(R),decreasing=TRUE)]
+for(i in 1:50){
+  if (row_sorted[i]!=rownames(R)[i]){
+    d[i,]=R[row_sorted[i],]
+  }else{
+    d[i,]=R[i,]
+  }
+}
+R=d
+R
+```
+
+Test using the following code.
+
+```{r}
+for (i in 2 : n){
+  expect_gte(sum(R[i - 1, ], na.rm = TRUE), sum(R[i, ], na.rm = TRUE))  
+}
+
+```
+
+
+6. Create a vector `v` consisting of a sample of 1,000 iid normal realizations with mean -10 and variance 10.
+
+```{r}
+num_rvs=1000;
+v=rnorm(num_rvs, mean=-10, sd = 10)
+v
+```
+
+
+Find the average of `v` and the standard error of `v`.
+
+```{r}
+mean(v)
+sd(v)
+```
+
+Find the 5%ile of `v` and use the `qnorm` function as part of a test to ensure it is correct based on probability theory.
+
+```{r}
+v_0.05 =quantile(v, probs = 0.05)
+test_v =qnorm(0.05, mean= mean(v), sd = sd(v), lower.tail = TRUE, log.p=FALSE)
+#expect_equal(v_0.05, test_v )
+```
+
+Find the sample quantile corresponding to the value -7000 of `v` and use the `pnorm` function as part of a test to ensure it is correct based on probability theory.
+
+
+```{r}
+inverse_quartile_v=ecdf(v)
+inverse_quartile_v(-7000)
+test_in_v=pnorm(-7000, mean = -10, sd = 10, lower.tail = TRUE, log.p = FALSE)
+expect_equal(inverse_quartile_v(-7000),test_in_v )
+```
+
+
+7. Create a list named `my_list` with keys "A", "B", ... where the entries are arrays of size 1, 2 x 2, 3 x 3 x 3, etc. Fill the array with the numbers 1, 2, 3, etc. Make 8 entries.
+
+
+```{r}
+my_list=list()
+for (i in 1:8){
+  my_list[[i]]= array(1:i^i, dim = rep(i,i))
+}
+names(my_list) = c("A","B","C","D","E","F","G","H")
+```
+
+Test with the following uncomprehensive tests:
+
+
+```{r}
+expect_equal(my_list$A, array(1,1))
+expect_equal(my_list[[2]][, 1], 1 : 2)
+expect_equal(dim(my_list[["H"]]), rep(8, 8))
+```
+
+Run the following code:
+
+```{r}
+lapply(my_list, object.size)
+```
+
+Use `?lapply` and `?object.size` to read about what these functions do. Then explain the output you see above. For the later arrays, does it make sense given the dimensions of the arrays?
+
+Answer here in English.
+
+  The lapply(x, FUN) function takes in two inputs, a vector(atomic or list) or an expression object and an arbitary function FUN. The output is a list of the same length of x, with each element of it being the output of applying function FUN to an element of x. In the above code, the function is the object.size function, which provides an estimate of the memory that is being used to store an R object. For the list 'my_list', there is a list of the same length with every component being the estimated storage memory for the corresponding component in my_list. Given the dimensions of the later arrays, it makes sense to have such a memory storage. These latter arrays will contain over thousands of entries after the 4th array.
+  
+  
+Now cleanup the namespace by deleting all stored objects and functions:
+
+```{r}
+rm(list=ls())
+```
+
+## Basic Binary Classification Modeling
+
+8. Load the famous `iris` data frame into the namespace. Provide a summary of the columns and write a few descriptive sentences about the distributions using the code below and in English.
+
+```{r}
+data(iris)
+summary(iris)
+```
+  The above summary for the characteristics of a flower follow distributions that can vary amongst each other. The 4 leftmost traits are features that are continuous variables, for that reason it is useful to produce the Tukey 5 number summary. The rightmost column is a categorical feature and therefore would not benefit from the Tukey 5 number summary. Instead, it is useful to obtain the amount of flowers that fall into such a category.
+
+
+The outcome metric is `Species`. This is what we will be trying to predict. However, we have only done binary classification in class (i.e. two classes). Thus the first order of business is to drop one class. Let's drop the level "virginica" from the data frame.
+
+```{r}
+iris[,"Species"]=factor(iris[,"Species"],exclude = "virginica", ordered = TRUE)
+```
+
+Now create a vector `y` that is length the number of remaining rows in the data frame whose entries are 0 if "setosa" and 1 if "versicolor".
+
+```{r}
+p=ifelse(as.factor(iris[,"Species"])=="virginica",NA,iris[,"Species"])
+x=0
+for(i in 1:length(p)){
+  if(!is.na(p[i])){
+    x=1+x
+  }else{
+    break
+  }
+}
+x
+#this will obtain a number for the length of y. Note, I kept the levels ordered in the 
+
+#chunk of code above this one so I could immediately break once reaching the first 'NA'.
+
+y_1=iris[1:x,"Species"]
+y=ifelse(y_1=="versicolor",1,0)
+y
+
+```
+
+9. Fit a threshold model to `y` using the feature `Sepal.Length`. Try to write your own code to do this. What is the estimated value of the threshold parameter? What is the total number of errors this model makes?
+
+```{r}
+n=length(y)
+num_errors_by_parameter=matrix(NA, nrow=n, ncol=2)
+colnames(num_errors_by_parameter)=c("threshold_param","num_errors")
+y_logical=y== 0
+b=iris$Sepal.Length[1:n]
+for(i in 1:n){
+  threshold=iris$Sepal.Length[i]
+  num_errors=sum((b<threshold)!=y_logical)
+  num_errors_by_parameter[i,]= c(threshold,num_errors)
+}
+best_row=order(num_errors_by_parameter[,"num_errors"])[1]
+num_errors_by_parameter[best_row,"threshold_param"]
+num_errors_by_parameter[best_row,"num_errors"]
+```
+
+Does this make sense given the following summaries:
+
+```{r}
+summary(iris[iris$Species == "setosa", "Sepal.Length"])
+summary(iris[iris$Species == "virginica", "Sepal.Length"])
+```
+
+Write your answer here in English.
+
+  This makes sense given that the best estimated threshold parameter is bigger than the median for the sepal length of a setosa iris and smaller than the sepal length of the virginica iris. The sepal length of the versicolor iris is expected to be within that interval. 
+
+
+10. Fit a perceptron model explaining `y` using all four features. Try to write your own code to do this. Provide the estimated parameters (i.e. the five entries of the weight vector)? What is the total number of errors this model makes?
+
+```{r}
+n=length(y)
+MAX_ITER=1000
+w_vec=rep(0,5)
+S_l=iris$Sepal.Length[1:n]
+S_w=iris$Sepal.Width[1:n]
+P_l=iris$Petal.Length[1:n]
+P_w=iris$Petal.Width[1:n]
+
+X1 = as.matrix(cbind(1,S_l,S_w,P_l,P_w ))
+
+for( iter in 1:MAX_ITER){
+  for(i in 1:n){
+    x_i=X1[1,]
+    yhat_i=ifelse(sum(x_i*w_vec)>0,1,0)
+    y_i=y[i]
+    w_vec = w_vec + (y_i - yhat_i) * x_i
+  }
+}
+w_vec
+
+yhat = ifelse(X1 %*% w_vec > 0, 1, 0)
+total_errors=sum(y != yhat) / length(y)
+
+
+total_errors
+```
+
+
+
+
+
+
+
+
+
